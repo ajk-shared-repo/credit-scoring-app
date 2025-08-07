@@ -81,4 +81,6 @@ return f"""
     <a href='/{data.get("Full_Name", "credit")}_report.pdf' download>Download Credit Report (PDF)</a>
 """
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
