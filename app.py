@@ -1,5 +1,6 @@
-
 from flask import Flask, request, render_template_string
+from generate_pdf import generate_credit_report
+from send_email import send_email_with_pdf
 
 app = Flask(__name__)
 
@@ -12,6 +13,7 @@ def score():
     data = request.form
     score = 0
 
+    # Calculate score
     age = int(data.get("Age", 0))
     income = float(data.get("Monthly_Income", 0))
     years = int(data.get("Years_in_Business", 0))
@@ -60,6 +62,7 @@ def score():
     if data.get("Group_Lending_Participation") == "Yes":
         score += 5
 
+    # Assign grade
     if score >= 80:
         grade = "Excellent"
     elif score >= 60:
@@ -71,15 +74,27 @@ def score():
     else:
         grade = "High Risk"
 
-    
-from generate_pdf import generate_credit_report
-generate_credit_report(data, score, grade, filename=f"{data.get('Full_Name', 'credit')}_report.pdf")
+    # Generate PDF
+    pdf_filename = f"{data.get('Full_Name', 'credit')}_report.pdf"
+    generate_credit_report(data, score, grade, filename=pdf_filename)
 
-return f"""
-    <h2>Score: {score}</h2>
-    <h3>Grade: {grade}</h3>
-    <a href='/{data.get("Full_Name", "credit")}_report.pdf' download>Download Credit Report (PDF)</a>
-"""
+    # Optional: send email
+    # send_email_with_pdf(
+    #     receiver_email="user@example.com",
+    #     applicant_name=data.get("Full_Name"),
+    #     pdf_filename=pdf_filename,
+    #     smtp_server="smtp.gmail.com",
+    #     smtp_port=465,
+    #     sender_email="youremail@gmail.com",
+    #     sender_password="yourpassword"
+    # )
+
+    return f"""
+        <h2>Score: {score}</h2>
+        <h3>Grade: {grade}</h3>
+        <a href='/{pdf_filename}' download>Download Credit Report (PDF)</a>
+    """
+
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 10000))
