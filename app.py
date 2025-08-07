@@ -1,6 +1,6 @@
+
 from flask import Flask, request, render_template_string
 from generate_pdf import generate_credit_report
-from send_email import send_email_with_pdf
 
 app = Flask(__name__)
 
@@ -13,7 +13,6 @@ def score():
     data = request.form
     score = 0
 
-    # Calculate score
     age = int(data.get("Age", 0))
     income = float(data.get("Monthly_Income", 0))
     years = int(data.get("Years_in_Business", 0))
@@ -24,13 +23,11 @@ def score():
     elif age > 55:
         score += 5
 
-    education = data.get("Education_Level")
     education_scores = {"None": 0, "Primary": 2, "Secondary": 5, "Tertiary": 10}
-    score += education_scores.get(education, 0)
+    score += education_scores.get(data.get("Education_Level"), 0)
 
-    employment = data.get("Employment_Status")
     employment_scores = {"Unemployed": 0, "Self-Employed": 5, "Employed": 10}
-    score += employment_scores.get(employment, 0)
+    score += employment_scores.get(data.get("Employment_Status"), 0)
 
     if income >= 1000:
         score += 10
@@ -42,8 +39,8 @@ def score():
     elif years >= 2:
         score += 5
 
-    status = data.get("Previous_Loan_Status")
-    score += {"Paid": 10, "Defaulted": -10, "No History": 0}.get(status, 0)
+    prev_loan_scores = {"Paid": 10, "Defaulted": -10, "No History": 0}
+    score += prev_loan_scores.get(data.get("Previous_Loan_Status"), 0)
 
     if savings >= 1000:
         score += 10
@@ -62,7 +59,6 @@ def score():
     if data.get("Group_Lending_Participation") == "Yes":
         score += 5
 
-    # Assign grade
     if score >= 80:
         grade = "Excellent"
     elif score >= 60:
@@ -74,26 +70,15 @@ def score():
     else:
         grade = "High Risk"
 
-    # Generate PDF
-    pdf_filename = f"{data.get('Full_Name', 'credit')}_report.pdf"
-    generate_credit_report(data, score, grade, filename=pdf_filename)
+    filename = f"{data.get('Full_Name', 'credit')}_report.pdf"
+    generate_credit_report(data, score, grade, filename)
 
-    # Optional: send email
-    # send_email_with_pdf(
-    #     receiver_email="user@example.com",
-    #     applicant_name=data.get("Full_Name"),
-    #     pdf_filename=pdf_filename,
-    #     smtp_server="smtp.gmail.com",
-    #     smtp_port=465,
-    #     sender_email="youremail@gmail.com",
-    #     sender_password="yourpassword"
-    # )
-
-    return f"""
-        <h2>Score: {score}</h2>
-        <h3>Grade: {grade}</h3>
-        <a href='/{pdf_filename}' download>Download Credit Report (PDF)</a>
-    """
+    html_output = f'''
+    <h2>Score: {score}</h2>
+    <h3>Grade: {grade}</h3>
+    <a href='/{filename}' download>Download Credit Report (PDF)</a>
+    '''
+    return html_output
 
 if __name__ == "__main__":
     import os

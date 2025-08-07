@@ -1,3 +1,2 @@
-flash
+flask
 reportlab
-secure-smtplib
