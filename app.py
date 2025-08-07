@@ -78,6 +78,6 @@ generate_credit_report(data, score, grade, filename=f"{data.get('Full_Name', 'cr
 return f"""
     <h2>Score: {score}</h2>
     <h3>Grade: {grade}</h3>
-    <a href='/{data.get('Full_Name', 'credit')}_report.pdf' download>Download Credit Report (PDF)</a>
+    <a href='/{data.get("Full_Name", "credit")}_report.pdf' download>Download Credit Report (PDF)</a>
 """
 
