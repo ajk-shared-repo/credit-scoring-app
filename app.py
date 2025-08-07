@@ -80,4 +80,5 @@ return f"""
     <h3>Grade: {grade}</h3>
     <a href='/{data.get("Full_Name", "credit")}_report.pdf' download>Download Credit Report (PDF)</a>
 """
-
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
