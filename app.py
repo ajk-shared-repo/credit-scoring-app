@@ -1,14 +1,14 @@
-from flask import Flask, render_template, request, send_file, Response
+from flask import Flask, render_template, request, send_file, Response, jsonify, redirect, url_for
 from jinja2 import TemplateNotFound
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.lib.utils import simpleSplit
-import io, datetime
+from pathlib import Path
+import os, io, datetime
 
 app = Flask(__name__, template_folder="templates")
 
-# ... (same calculate_credit_score, generate_pdf as last build) ...
 def calculate_credit_score(data):
     score = 300
     score += (data["payment_history_score"]/100.0)*185
@@ -91,35 +91,64 @@ def health():
 def index():
     if request.method == "HEAD": return Response(status=200)
     if request.method == "GET":
+        return ("GET OK — templates bypassed for diagnostics. "
+                "Visit /debug to inspect files or go to /form to render templates."), 200
+    return redirect(url_for("form_view"))
+
+@app.route("/form", methods=["GET","POST"])
+def form_view():
+    if request.method == "GET":
         try:
             return render_template("form.html")
         except TemplateNotFound as e:
-            return f"Template not found: {e}. Ensure /templates/form.html exists at repo root.", 500
-    fd = {
-        "full_name": request.form.get("full_name","").strip(),
-        "dob": request.form.get("dob","").strip(),
-        "national_id": request.form.get("national_id","").strip(),
-        "current_address": request.form.get("current_address","").strip(),
-        "phone_number": request.form.get("phone_number","").strip(),
-        "employment": request.form.get("employment","").strip(),
-        "employer": request.form.get("employer","").strip(),
-        "income_level": request.form.get("income_level","").strip(),
-        "credit_utilization_ratio": float(request.form.get("credit_utilization_ratio","0") or 0),
-        "payment_history_score": float(request.form.get("payment_history_score","0") or 0),
-        "debt_to_income_ratio": float(request.form.get("debt_to_income_ratio","0") or 0),
-        "open_credit_lines": int(request.form.get("open_credit_lines","0") or 0),
-        "past_due_accounts": int(request.form.get("past_due_accounts","0") or 0),
-        "length_credit_history_years": int(request.form.get("length_credit_history","0") or 0),
-        "recent_inquiries_12m": int(request.form.get("recent_inquiries","0") or 0),
-        "collateral_provided": request.form.get("collateral_provided","").strip(),
-        "account_types": request.form.get("account_types","").strip(),
-        "macroeconomic_risk": request.form.get("macroeconomic_risk","").strip(),
-    }
+            return f"Template not found: {e}. Ensure templates/form.html exists at repo root.", 500
+    try:
+        fd = {
+            "full_name": request.form.get("full_name","").strip(),
+            "dob": request.form.get("dob","").strip(),
+            "national_id": request.form.get("national_id","").strip(),
+            "current_address": request.form.get("current_address","").strip(),
+            "phone_number": request.form.get("phone_number","").strip(),
+            "employment": request.form.get("employment","").strip(),
+            "employer": request.form.get("employer","").strip(),
+            "income_level": request.form.get("income_level","").strip(),
+            "credit_utilization_ratio": float(request.form.get("credit_utilization_ratio","0") or 0),
+            "payment_history_score": float(request.form.get("payment_history_score","0") or 0),
+            "debt_to_income_ratio": float(request.form.get("debt_to_income_ratio","0") or 0),
+            "open_credit_lines": int(request.form.get("open_credit_lines","0") or 0),
+            "past_due_accounts": int(request.form.get("past_due_accounts","0") or 0),
+            "length_credit_history_years": int(request.form.get("length_credit_history","0") or 0),
+            "recent_inquiries_12m": int(request.form.get("recent_inquiries","0") or 0),
+            "collateral_provided": request.form.get("collateral_provided","").strip(),
+            "account_types": request.form.get("account_types","").strip(),
+            "macroeconomic_risk": request.form.get("macroeconomic_risk","").strip(),
+        }
+    except ValueError:
+        return render_template("form.html", error="Please ensure numeric fields contain valid numbers.")
     score, category = calculate_credit_score(fd)
     if request.form.get("action") == "download_pdf":
         pdf = generate_pdf(fd, score, category)
         return send_file(pdf, as_attachment=True, download_name="credit_report.pdf", mimetype="application/pdf")
     return render_template("result.html", data=fd, score=score, category=category)
+
+@app.route("/debug")
+def debug():
+    here = Path(__file__).resolve()
+    cwd = os.getcwd()
+    tree = []
+    for root, dirs, files in os.walk(".", topdown=True):
+        depth = root.count(os.sep)
+        if depth > 2:
+            continue
+        tree.append({"root": root, "dirs": dirs, "files": files})
+    return jsonify({
+        "python": os.sys.version,
+        "app_file": str(here),
+        "cwd": cwd,
+        "has_templates_dir": os.path.isdir("templates"),
+        "templates_list": os.listdir("templates") if os.path.isdir("templates") else [],
+        "tree": tree
+    })
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
