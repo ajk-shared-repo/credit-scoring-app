@@ -1,11 +1,13 @@
 from flask import Flask, render_template, request, send_file, Response
+from jinja2 import TemplateNotFound
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 from reportlab.lib.utils import simpleSplit
 import io, datetime
 
-app = Flask(__name__)
+# Explicit template folder to avoid path issues on Render
+app = Flask(__name__, template_folder="templates")
 
 # --------------------------
 # Credit Scoring Logic
@@ -140,7 +142,11 @@ def index():
         return Response(status=200)
 
     if request.method == "GET":
-        return render_template("form.html")
+        try:
+            return render_template("form.html")
+        except TemplateNotFound as e:
+            # Helpful message if template path is wrong in deployment
+            return f"Template not found: {e}. Ensure /templates/form.html exists at repo root or set template_folder correctly.", 500
 
     # POST
     try:
