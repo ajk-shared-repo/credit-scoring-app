@@ -1,1 +1,5 @@
-Use Start Command: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120 --graceful-timeout 30 --keep-alive 5 --worker-tmp-dir /tmp
+Deploy on Render:
+- Build: pip install -r requirements.txt
+- Start: (use Procfile) or set Start Command to the same gunicorn line from Procfile (but not both).
+- Health Check Path: /health
+- Optional env vars: WORKERS=2, THREADS=2, TIMEOUT=120
