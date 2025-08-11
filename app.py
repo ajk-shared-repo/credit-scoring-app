@@ -12,6 +12,25 @@ import io, datetime, sys
 ROOT_DIR = Path(__file__).resolve().parent
 TEMPLATES_DIR = ROOT_DIR / "templates"
 
+def _fix_templates_dir():
+    try:
+        if TEMPLATES_DIR.exists() and not TEMPLATES_DIR.is_dir():
+            bad_path = TEMPLATES_DIR
+            backup = ROOT_DIR / "templates_conflict_backup"
+            try:
+                bad_path.rename(backup)
+                print("[repair] Renamed file 'templates' -> 'templates_conflict_backup'", file=sys.stderr)
+            except Exception as e:
+                print("[repair] Rename failed, unlinking 'templates': %s" % e, file=sys.stderr)
+                bad_path.unlink(missing_ok=True)
+            TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+            print("[repair] Created templates directory at %s" % TEMPLATES_DIR, file=sys.stderr)
+        elif not TEMPLATES_DIR.exists():
+            TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+            print("[repair] Created templates directory at %s" % TEMPLATES_DIR, file=sys.stderr)
+    except Exception as e:
+        print("[repair] _fix_templates_dir error: %s" % e, file=sys.stderr)
+
 FALLBACK_FORM = """<!doctype html>
 <html>
 <head><meta charset="utf-8"><title>Credit Scoring Form</title></head>
@@ -33,7 +52,7 @@ FALLBACK_FORM = """<!doctype html>
 <p><label>Past Due Accounts <input type="number" name="past_due_accounts" required></label></p>
 <p><label>Length of Credit History (years) <input type="number" name="length_credit_history" required></label></p>
 <p><label>Recent Credit Inquiries (12m) <input type="number" name="recent_inquiries" required></label></p>
-<p><label>Collateral Provided <input name="collateral_provided"></label></p>
+<p><label>Collateral Provided <input name="collateral_proed"></label></p>
 <p><label>Account Types <input name="account_types"></label></p>
 <p><label>Macroeconomic Risk Adjustment <input name="macroeconomic_risk"></label></p>
 <p>
@@ -58,10 +77,8 @@ FALLBACK_RESULT = """<!doctype html>
 </body></html>"""
 
 def ensure_templates():
+    _fix_templates_dir()
     try:
-        if not TEMPLATES_DIR.exists():
-            TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-            print("[failsafe] Created templates dir: %s" % TEMPLATES_DIR, file=sys.stderr)
         form_p = TEMPLATES_DIR / "form.html"
         result_p = TEMPLATES_DIR / "result.html"
         if not form_p.exists():
@@ -176,6 +193,17 @@ def debug():
         "has_templates_dir": TEMPLATES_DIR.is_dir(),
         "templates_list": os.listdir(TEMPLATES_DIR) if TEMPLATES_DIR.is_dir() else [],
         "tree": tree
+    })
+
+@app.route("/repair", methods=["POST","GET"])
+def repair():
+    _fix_templates_dir()
+    ensure_templates()
+    return jsonify({
+        "repaired": True,
+        "templates_dir": str(TEMPLATES_DIR),
+        "has_templates_dir": TEMPLATES_DIR.is_dir(),
+        "templates_list": os.listdir(TEMPLATES_DIR) if TEMPLATES_DIR.is_dir() else []
     })
 
 @app.route("/", methods=["GET","POST","HEAD"])

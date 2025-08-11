@@ -1,5 +1,6 @@
-Deploy on Render:
+Render setup:
 - Build: pip install -r requirements.txt
-- Start: (use Procfile) or set Start Command to the same gunicorn line from Procfile (but not both).
-- Health Check Path: /health
-- Optional env vars: WORKERS=2, THREADS=2, TIMEOUT=120
+- Start: use Procfile OR set Start Command to the same gunicorn line (not both)
+- Health Check: /health
+- Optional env: WORKERS=2, THREADS=2, TIMEOUT=120
+- If templates error persists, open /repair
